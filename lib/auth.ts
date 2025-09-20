@@ -2,8 +2,10 @@ export interface User {
   id: string
   email: string
   name: string
-  password?: string // A senha só existe no banco, não no cliente
-  createdAt: string
+  preferences: {
+    theme: "light" | "dark"
+    language: "pt" | "en"
+  }
 }
 
 export interface AuthState {
@@ -11,95 +13,106 @@ export interface AuthState {
   isAuthenticated: boolean
 }
 
-class AuthService {
-  private storageKey = "todo-auth-user"
+const AUTH_STORAGE_KEY = "todo-app-auth"
+const USERS_STORAGE_KEY = "todo-app-users"
 
-  getCurrentUser(): User | null {
-    if (typeof window === "undefined") return null
-
-    const stored = localStorage.getItem(this.storageKey)
-    if (!stored) return null
-
-    try {
-      return JSON.parse(stored)
-    } catch {
-      return null
-    }
+export function getStoredAuth(): AuthState {
+  if (typeof window === "undefined") {
+    return { user: null, isAuthenticated: false }
   }
 
-  async login(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    // Simple validation for demo
-    if (!email || !password) {
-      return { success: false, error: "Email e senha são obrigatórios" }
+  try {
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (stored) {
+      const auth = JSON.parse(stored)
+      return auth
     }
-
-    if (password.length < 6) {
-      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
-    }
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { success: false, error: data.message || "Erro ao fazer login" }
-      }
-
-      // Armazena o usuário logado no localStorage para manter a sessão
-      localStorage.setItem(this.storageKey, JSON.stringify(data))
-
-      return { success: true, user: data }
-    } catch (error) {
-      return { success: false, error: "Não foi possível conectar ao servidor." }
-    }
+  } catch (error) {
+    console.error("Error reading auth from storage:", error)
   }
 
-  async register(
-    email: string,
-    password: string,
-    name: string,
-  ): Promise<{ success: boolean; user?: User; error?: string }> {
-    // Simple validation
-    if (!email || !password || !name) {
-      return { success: false, error: "Todos os campos são obrigatórios" }
-    }
+  return { user: null, isAuthenticated: false }
+}
 
-    if (password.length < 6) {
-      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
-    }
+export function setStoredAuth(auth: AuthState): void {
+  if (typeof window === "undefined") return
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { success: false, error: data.message || "Erro ao registrar" }
-      }
-
-      // Após o registro, faz o login automaticamente
-      return this.login(email, password)
-    } catch (error) {
-      return { success: false, error: "Não foi possível conectar ao servidor." }
-    }
-  }
-
-  logout(): void {
-    localStorage.removeItem(this.storageKey)
+  try {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth))
+  } catch (error) {
+    console.error("Error saving auth to storage:", error)
   }
 }
 
-export const authService = new AuthService()
+export function getStoredUsers(): User[] {
+  if (typeof window === "undefined") return []
+
+  try {
+    const stored = localStorage.getItem(USERS_STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (error) {
+    console.error("Error reading users from storage:", error)
+  }
+
+  return []
+}
+
+export function setStoredUsers(users: User[]): void {
+  if (typeof window === "undefined") return
+
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
+  } catch (error) {
+    console.error("Error saving users to storage:", error)
+  }
+}
+
+export function registerUser(
+  email: string,
+  password: string,
+  name: string,
+): { success: boolean; error?: string; user?: User } {
+  const users = getStoredUsers()
+
+  // Check if user already exists
+  if (users.find((u) => u.email === email)) {
+    return { success: false, error: "Email já está em uso" }
+  }
+
+  // Create new user
+  const newUser: User = {
+    id: Date.now().toString(),
+    email,
+    name,
+    preferences: {
+      theme: "light",
+      language: "pt",
+    },
+  }
+
+  // Store password separately (in real app, this would be hashed)
+  const userWithPassword = { ...newUser, password }
+  users.push(userWithPassword as any)
+  setStoredUsers(users)
+
+  return { success: true, user: newUser }
+}
+
+export function loginUser(email: string, password: string): { success: boolean; error?: string; user?: User } {
+  const users = getStoredUsers()
+  const user = users.find((u) => u.email === email && (u as any).password === password)
+
+  if (!user) {
+    return { success: false, error: "Email ou senha incorretos" }
+  }
+
+  // Remove password from returned user object
+  const { password: _, ...userWithoutPassword } = user as any
+  return { success: true, user: userWithoutPassword }
+}
+
+export function logoutUser(): void {
+  setStoredAuth({ user: null, isAuthenticated: false })
+}
