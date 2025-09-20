@@ -2,6 +2,7 @@ export interface User {
   id: string
   email: string
   name: string
+  password?: string // A senha só existe no banco, não no cliente
   createdAt: string
 }
 
@@ -27,9 +28,6 @@ class AuthService {
   }
 
   async login(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
     // Simple validation for demo
     if (!email || !password) {
       return { success: false, error: "Email e senha são obrigatórios" }
@@ -39,12 +37,42 @@ class AuthService {
       return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
     }
 
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+    // Simple validation for demo
+    if (!email || !password) {
+      return { success: false, error: "Email e senha são obrigatórios" }
+    }
+      const data = await response.json()
+
+    if (password.length < 6) {
+      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
+    }
+      if (!response.ok) {
+        return { success: false, error: data.message || "Erro ao fazer login" }
+      }
+
     // Create user object
     const user: User = {
       id: Date.now().toString(),
       email,
       name: email.split("@")[0],
       createdAt: new Date().toISOString(),
+      // Armazena o usuário logado no localStorage para manter a sessão
+      localStorage.setItem(this.storageKey, JSON.stringify(data))
+
+      return { success: true, user: data }
+    } catch (error)
+     {
+    } catch (error) {
+      return { success: false, error: "Não foi possível conectar ao servidor." }
     }
 
     // Store in localStorage
@@ -58,9 +86,6 @@ class AuthService {
     password: string,
     name: string,
   ): Promise<{ success: boolean; user?: User; error?: string }> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
     // Simple validation
     if (!email || !password || !name) {
       return { success: false, error: "Todos os campos são obrigatórios" }
@@ -70,12 +95,38 @@ class AuthService {
       return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
     }
 
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name }),
+      })
+
+    // Simple validation
+    if (!email || !password || !name) {
+      return { success: false, error: "Todos os campos são obrigatórios" }
+    }
+      const data = await response.json()
+
+    if (password.length < 6) {
+      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
+    }
+      if (!response.ok) {
+        return { success: false, error: data.message || "Erro ao registrar" }
+      }
+
     // Create user object
     const user: User = {
       id: Date.now().toString(),
       email,
       name,
       createdAt: new Date().toISOString(),
+      // Após o registro, faz o login automaticamente
+      return this.login(email, password)
+    } catch (error) {
+      return { success: false, error: "Não foi possível conectar ao servidor." }
     }
 
     // Store in localStorage
