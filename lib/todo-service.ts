@@ -26,88 +26,49 @@ export interface UpdateTodoData {
 }
 
 class TodoService {
-  private storageKey = "todo-app-todos"
-
-  private getTodos(): Todo[] {
-    if (typeof window === "undefined") return []
-
-    const stored = localStorage.getItem(this.storageKey)
-    if (!stored) return []
-
-    try {
-      return JSON.parse(stored)
-    } catch {
-      return []
-    }
-  }
-
-  private saveTodos(todos: Todo[]): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(todos))
-  }
-
   async getUserTodos(userId: string): Promise<Todo[]> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const todos = this.getTodos()
-    return todos.filter((todo) => todo.userId === userId)
+    const response = await fetch(`/api/todos?userId=${userId}`)
+    if (!response.ok) {
+      throw new Error("Falha ao buscar tarefas")
+    }
+    const data = await response.json()
+    // O MongoDB retorna _id, mas o front-end espera id. A API já deve fazer essa conversão.
+    return data.map((item: any) => ({ ...item, id: item._id?.toString() || item.id }))
   }
 
   async createTodo(userId: string, data: CreateTodoData): Promise<Todo> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const todos = this.getTodos()
-    const newTodo: Todo = {
-      id: Date.now().toString(),
-      userId,
-      title: data.title,
-      description: data.description,
-      completed: false,
-      priority: data.priority,
-      dueDate: data.dueDate,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const response = await fetch("/api/todos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, data }),
+    })
+    if (!response.ok) {
+      throw new Error("Falha ao criar tarefa")
     }
-
-    todos.push(newTodo)
-    this.saveTodos(todos)
-
-    return newTodo
+    return response.json()
   }
 
   async updateTodo(todoId: string, data: UpdateTodoData): Promise<Todo | null> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const todos = this.getTodos()
-    const todoIndex = todos.findIndex((todo) => todo.id === todoId)
-
-    if (todoIndex === -1) return null
-
-    const updatedTodo = {
-      ...todos[todoIndex],
-      ...data,
-      updatedAt: new Date().toISOString(),
+    const response = await fetch(`/api/todos/${todoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+      throw new Error("Falha ao atualizar tarefa")
     }
-
-    todos[todoIndex] = updatedTodo
-    this.saveTodos(todos)
-
-    return updatedTodo
+    return response.json()
   }
 
   async deleteTodo(todoId: string): Promise<boolean> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const todos = this.getTodos()
-    const filteredTodos = todos.filter((todo) => todo.id !== todoId)
-
-    if (filteredTodos.length === todos.length) return false
-
-    this.saveTodos(filteredTodos)
-    return true
+    const response = await fetch(`/api/todos/${todoId}`, {
+      method: "DELETE",
+    })
+    if (!response.ok) {
+      throw new Error("Falha ao deletar tarefa")
+    }
+    const result = await response.json()
+    return result.success
   }
 
   async exportUserTodos(userId: string): Promise<string> {
