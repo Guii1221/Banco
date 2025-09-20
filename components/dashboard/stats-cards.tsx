@@ -1,27 +1,30 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { CheckCircle, Clock, AlertTriangle, ListTodo } from "lucide-react"
-import type { TaskStats } from "@/lib/tasks"
+import { CheckCircle, Clock, AlertCircle, ListTodo } from "lucide-react"
 
-interface TaskStatsProps {
-  stats: TaskStats
+interface StatsCardsProps {
+  stats: {
+    total: number
+    completed: number
+    pending: number
+    byPriority: { low: number; medium: number; high: number }
+  }
 }
 
-export function TaskStatsComponent({ stats }: TaskStatsProps) {
+export function StatsCards({ stats }: StatsCardsProps) {
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total</CardTitle>
+          <CardTitle className="text-sm font-medium">Total de Tarefas</CardTitle>
           <ListTodo className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.total}</div>
-          <p className="text-xs text-muted-foreground">tarefas criadas</p>
+          <p className="text-xs text-muted-foreground">Todas as suas tarefas</p>
         </CardContent>
       </Card>
 
@@ -32,32 +35,29 @@ export function TaskStatsComponent({ stats }: TaskStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-          <div className="mt-2">
-            <Progress value={completionRate} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1">{completionRate}% completo</p>
-          </div>
+          <p className="text-xs text-muted-foreground">{completionRate}% do total</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-          <Clock className="h-4 w-4 text-blue-600" />
+          <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{stats.pending}</div>
-          <p className="text-xs text-muted-foreground">aguardando conclusão</p>
+          <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
+          <p className="text-xs text-muted-foreground">Aguardando conclusão</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Atrasadas</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <CardTitle className="text-sm font-medium">Alta Prioridade</CardTitle>
+          <AlertCircle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
-          <p className="text-xs text-muted-foreground">vencimento passou</p>
+          <div className="text-2xl font-bold text-red-600">{stats.byPriority.high}</div>
+          <p className="text-xs text-muted-foreground">Requer atenção</p>
         </CardContent>
       </Card>
     </div>

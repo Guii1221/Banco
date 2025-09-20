@@ -2,10 +2,7 @@ export interface User {
   id: string
   email: string
   name: string
-  preferences: {
-    theme: "light" | "dark"
-    language: "pt" | "en"
-  }
+  createdAt: string
 }
 
 export interface AuthState {
@@ -13,106 +10,83 @@ export interface AuthState {
   isAuthenticated: boolean
 }
 
-const AUTH_STORAGE_KEY = "todo-app-auth"
-const USERS_STORAGE_KEY = "todo-app-users"
+class AuthService {
+  private storageKey = "todo-auth-user"
 
-export function getStoredAuth(): AuthState {
-  if (typeof window === "undefined") {
-    return { user: null, isAuthenticated: false }
-  }
+  getCurrentUser(): User | null {
+    if (typeof window === "undefined") return null
 
-  try {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY)
-    if (stored) {
-      const auth = JSON.parse(stored)
-      return auth
-    }
-  } catch (error) {
-    console.error("Error reading auth from storage:", error)
-  }
+    const stored = localStorage.getItem(this.storageKey)
+    if (!stored) return null
 
-  return { user: null, isAuthenticated: false }
-}
-
-export function setStoredAuth(auth: AuthState): void {
-  if (typeof window === "undefined") return
-
-  try {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth))
-  } catch (error) {
-    console.error("Error saving auth to storage:", error)
-  }
-}
-
-export function getStoredUsers(): User[] {
-  if (typeof window === "undefined") return []
-
-  try {
-    const stored = localStorage.getItem(USERS_STORAGE_KEY)
-    if (stored) {
+    try {
       return JSON.parse(stored)
+    } catch {
+      return null
     }
-  } catch (error) {
-    console.error("Error reading users from storage:", error)
   }
 
-  return []
-}
+  async login(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-export function setStoredUsers(users: User[]): void {
-  if (typeof window === "undefined") return
+    // Simple validation for demo
+    if (!email || !password) {
+      return { success: false, error: "Email e senha são obrigatórios" }
+    }
 
-  try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-  } catch (error) {
-    console.error("Error saving users to storage:", error)
+    if (password.length < 6) {
+      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
+    }
+
+    // Create user object
+    const user: User = {
+      id: Date.now().toString(),
+      email,
+      name: email.split("@")[0],
+      createdAt: new Date().toISOString(),
+    }
+
+    // Store in localStorage
+    localStorage.setItem(this.storageKey, JSON.stringify(user))
+
+    return { success: true, user }
+  }
+
+  async register(
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<{ success: boolean; user?: User; error?: string }> {
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // Simple validation
+    if (!email || !password || !name) {
+      return { success: false, error: "Todos os campos são obrigatórios" }
+    }
+
+    if (password.length < 6) {
+      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
+    }
+
+    // Create user object
+    const user: User = {
+      id: Date.now().toString(),
+      email,
+      name,
+      createdAt: new Date().toISOString(),
+    }
+
+    // Store in localStorage
+    localStorage.setItem(this.storageKey, JSON.stringify(user))
+
+    return { success: true, user }
+  }
+
+  logout(): void {
+    localStorage.removeItem(this.storageKey)
   }
 }
 
-export function registerUser(
-  email: string,
-  password: string,
-  name: string,
-): { success: boolean; error?: string; user?: User } {
-  const users = getStoredUsers()
-
-  // Check if user already exists
-  if (users.find((u) => u.email === email)) {
-    return { success: false, error: "Email já está em uso" }
-  }
-
-  // Create new user
-  const newUser: User = {
-    id: Date.now().toString(),
-    email,
-    name,
-    preferences: {
-      theme: "light",
-      language: "pt",
-    },
-  }
-
-  // Store password separately (in real app, this would be hashed)
-  const userWithPassword = { ...newUser, password }
-  users.push(userWithPassword as any)
-  setStoredUsers(users)
-
-  return { success: true, user: newUser }
-}
-
-export function loginUser(email: string, password: string): { success: boolean; error?: string; user?: User } {
-  const users = getStoredUsers()
-  const user = users.find((u) => u.email === email && (u as any).password === password)
-
-  if (!user) {
-    return { success: false, error: "Email ou senha incorretos" }
-  }
-
-  // Remove password from returned user object
-  const { password: _, ...userWithoutPassword } = user as any
-  return { success: true, user: userWithoutPassword }
-}
-
-export function logoutUser(): void {
-  setStoredAuth({ user: null, isAuthenticated: false })
-}
+export const authService = new AuthService()
