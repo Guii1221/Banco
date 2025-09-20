@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     const client = await clientPromise
     const db = client.db(process.env.MONGODB_DB)
-    const usersCollection = db.collection<User>("users")
+    const usersCollection = db.collection<Omit<User, "id"> & { _id: any }>("users")
 
     const user = await usersCollection.findOne({ email })
 

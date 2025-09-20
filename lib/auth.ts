@@ -46,39 +46,19 @@ class AuthService {
         body: JSON.stringify({ email, password }),
       })
 
-    // Simple validation for demo
-    if (!email || !password) {
-      return { success: false, error: "Email e senha são obrigatórios" }
-    }
       const data = await response.json()
 
-    if (password.length < 6) {
-      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
-    }
       if (!response.ok) {
         return { success: false, error: data.message || "Erro ao fazer login" }
       }
 
-    // Create user object
-    const user: User = {
-      id: Date.now().toString(),
-      email,
-      name: email.split("@")[0],
-      createdAt: new Date().toISOString(),
       // Armazena o usuário logado no localStorage para manter a sessão
       localStorage.setItem(this.storageKey, JSON.stringify(data))
 
       return { success: true, user: data }
-    } catch (error)
-     {
     } catch (error) {
       return { success: false, error: "Não foi possível conectar ao servidor." }
     }
-
-    // Store in localStorage
-    localStorage.setItem(this.storageKey, JSON.stringify(user))
-
-    return { success: true, user }
   }
 
   async register(
@@ -104,35 +84,17 @@ class AuthService {
         body: JSON.stringify({ email, password, name }),
       })
 
-    // Simple validation
-    if (!email || !password || !name) {
-      return { success: false, error: "Todos os campos são obrigatórios" }
-    }
       const data = await response.json()
 
-    if (password.length < 6) {
-      return { success: false, error: "Senha deve ter pelo menos 6 caracteres" }
-    }
       if (!response.ok) {
         return { success: false, error: data.message || "Erro ao registrar" }
       }
 
-    // Create user object
-    const user: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-      createdAt: new Date().toISOString(),
       // Após o registro, faz o login automaticamente
       return this.login(email, password)
     } catch (error) {
       return { success: false, error: "Não foi possível conectar ao servidor." }
     }
-
-    // Store in localStorage
-    localStorage.setItem(this.storageKey, JSON.stringify(user))
-
-    return { success: true, user }
   }
 
   logout(): void {
